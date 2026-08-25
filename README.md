@@ -6,7 +6,7 @@ import Foundation
 let client = Uwupad()
 
 do {
-    let country = try await client.get_country_list()
+    let country = try await client.getCountryList()
     print(country)
 } catch {
     print("Error: \(error)")
@@ -15,6 +15,5 @@ do {
 
 # Launch (your script)
 ```
-swiftc -o uwu uwupad.swift main.swift
-./uwu
+swift run
 ```
