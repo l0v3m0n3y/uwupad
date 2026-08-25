@@ -20,6 +20,7 @@ extension URLSession {
     }
 }
 
+
 public class Uwupad {
     private let api = "https://uwupad.me/api"
     private let music_api = "https://uwupad.me/music/api"
@@ -27,146 +28,193 @@ public class Uwupad {
     
     public init() {
         self.headers = [
-        "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "Connection":"keep-alive",
-        "Accept-Encoding":"deflate, zstd",
-        "Accept-Language":"en-US,en;q=0.9",
-        "Host":"uwupad.me",
-        "User-Agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Connection": "keep-alive",
+            "Accept-Encoding": "deflate, zstd",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Host": "uwupad.me",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
         ]
+    }
+    
+    private func fetchJSON(from urlString: String,method: HTTPMethod = .get,body: Data? = nil,queryParameters: [String: String]? = nil) async throws -> Any {
+        var urlComponents = URLComponents(string: urlString)
+        if let queryParameters = queryParameters {
+            urlComponents?.queryItems = queryParameters.map { URLQueryItem(name: $0.key, value: $0.value) }
+        }
+        guard let url = urlComponents?.url else {
+            throw NSError(domain: "Invalid URL", code: -1)
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = method.rawValue
+        request.allHTTPHeaderFields = headers
+        if let body = body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+        let (data, _) = try await URLSession.shared.data(for: request)
+        return try JSONSerialization.jsonObject(with: data)
+    }
 
+    
+    public func getSounds(offset: Int, geo: String, sortBy: String) async throws -> Any {
+        let queryParameters: [String: String] = [
+            "beta": "false",
+            "v3": "true",
+            "tab": "fyp",
+            "limit": "15",
+            "offset": String(offset),
+            "geo": geo,
+            "content_langs": "en,ru,sfx",
+            "sort_by": sortBy
+        ]
+        
+        return try await fetchJSON(
+            from: "\(api)/sounds/",
+            method: .get,
+            queryParameters: queryParameters
+        )
     }
     
-    public func get_sounds(offset: Int,geo: String,sort_by: String) async throws -> Any {
-        guard let url = URL(string: "\(api)/sounds/?beta=false&v3=true&tab=fyp&limit=15&offset=\(offset)&geo=\(geo)&content_langs=en%2Cru%2Csfx&sort_by=\(sort_by)") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
+    public func getSoundComments(id: Int, skip: Int, sort: String) async throws -> Any {
+        let queryParameters: [String: String] = [
+            "skip": String(skip),
+            "limit": "10",
+            "sort": sort
+        ]
+        
+        return try await fetchJSON(
+            from: "\(api)/sounds/\(id)/comments",
+            method: .get,
+            queryParameters: queryParameters
+        )
     }
     
-    public func get_sound_comments(id: Int,skip: Int,sort: String) async throws -> Any {
-        guard let url = URL(string: "\(api)/sounds/\(id)/comments?skip=\(skip)&limit=10&sort=\(sort)") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
+    public func getSoundsCount() async throws -> Any {
+        return try await fetchJSON(from: "\(api)/sounds/count")
     }
+
     
-    public func get_sounds_count() async throws -> Any {
-        guard let url = URL(string: "\(api)/sounds/count") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
-    }
-    
-    public func get_country_list() async throws -> Any {
-        guard let url = URL(string: "\(api)/trending/countries") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
-    }
-    
-    public func get_leaderboard(period: String) async throws -> Any {
-        guard let url = URL(string: "\(api)/leaderboard/next-update-time?period=\(period)") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
-    }
-    
-    public func get_leaderboard_v2(period: String,metric: String) async throws -> Any {
-        guard let url = URL(string: "\(api)/leaderboard/v2?period=\(period)&metric=\(metric)&limit=100") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
+    public func getCountryList() async throws -> Any {
+        return try await fetchJSON(from: "\(api)/trending/countries")
     }
     
     
-    public func get_playlists(tab: String, sort_by: String,offset: Int) async throws -> Any {
-        guard let url = URL(string: "\(api)/playlists?tab=\(tab)&sort_by=\(sort_by)&offset=\(offset)&limit=15") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
+    public func getLeaderboard(period: String) async throws -> Any {
+        return try await fetchJSON(
+            from: "\(api)/leaderboard/next-update-time",
+            method: .get,
+            queryParameters: ["period": period]
+        )
     }
     
-    public func get_users(offset: Int, sort_by: String) async throws -> Any {
-        guard let url = URL(string: "\(api)/users?limit=20&offset=\(offset)&sort_by=\(sort_by)") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
+    public func getLeaderboardV2(period: String, metric: String) async throws -> Any {
+        let queryParameters: [String: String] = [
+            "period": period,
+            "metric": metric,
+            "limit": "100"
+        ]
+        
+        return try await fetchJSON(
+            from: "\(api)/leaderboard/v2",
+            method: .get,
+            queryParameters: queryParameters
+        )
+    }
+
+    
+    public func getPlaylists(tab: String, sortBy: String, offset: Int) async throws -> Any {
+        let queryParameters: [String: String] = [
+            "tab": tab,
+            "sort_by": sortBy,
+            "offset": String(offset),
+            "limit": "15"
+        ]
+        
+        return try await fetchJSON(
+            from: "\(api)/playlists",
+            method: .get,
+            queryParameters: queryParameters
+        )
     }
     
-    public func search(query: String,offset: Int, sort_by: String) async throws -> Any {
-        guard let url = URL(string: "\(api)/search?v3=true&query=\(query)&limit=20&offset=\(offset)&sort_by=\(sort_by)") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
+
+    public func getUsers(offset: Int, sortBy: String) async throws -> Any {
+        let queryParameters: [String: String] = [
+            "limit": "20",
+            "offset": String(offset),
+            "sort_by": sortBy
+        ]
+        
+        return try await fetchJSON(
+            from: "\(api)/users",
+            method: .get,
+            queryParameters: queryParameters
+        )
     }
     
-    public func search_music(offset: Int,sort_by: String,period: String,query: String) async throws -> Any {
-        guard let url = URL(string: "\(music_api)/music/?limit=20&offset=\(offset)&sort_by=\(sort_by)&period=\(period)&query=\(query)") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
+
+    public func search(query: String, offset: Int, sortBy: String) async throws -> Any {
+        let queryParameters: [String: String] = [
+            "v3": "true",
+            "query": query,
+            "limit": "20",
+            "offset": String(offset),
+            "sort_by": sortBy
+        ]
+        
+        return try await fetchJSON(
+            from: "\(api)/search",
+            method: .get,
+            queryParameters: queryParameters
+        )
+    }
+
+    
+    public func searchMusic(offset: Int, sortBy: String, period: String, query: String) async throws -> Any {
+        let queryParameters: [String: String] = [
+            "limit": "20",
+            "offset": String(offset),
+            "sort_by": sortBy,
+            "period": period,
+            "query": query
+        ]
+        
+        return try await fetchJSON(
+            from: "\(music_api)/music/",
+            method: .get,
+            queryParameters: queryParameters
+        )
     }
     
-    public func get_music(offset: Int,sort_by: String,period: String) async throws -> Any {
-        guard let url = URL(string: "\(music_api)/music?limit=20&offset=\(offset)&sort_by=\(sort_by)&period=\(period)") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
+    public func getMusic(offset: Int, sortBy: String, period: String) async throws -> Any {
+        let queryParameters: [String: String] = [
+            "limit": "20",
+            "offset": String(offset),
+            "sort_by": sortBy,
+            "period": period
+        ]
+        
+        return try await fetchJSON(
+            from: "\(music_api)/music",
+            method: .get,
+            queryParameters: queryParameters
+        )
     }
     
-    public func get_music_by_geo(offset: Int,sort_by: String,period: String,geo: String) async throws -> Any {
-        guard let url = URL(string: "\(music_api)/music?limit=20&offset=\(offset)&sort_by=\(sort_by)&period=\(period)&geo=\(geo)") else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
+    public func getMusicByGeo(offset: Int, sortBy: String, period: String, geo: String) async throws -> Any {
+        let queryParameters: [String: String] = [
+            "limit": "20",
+            "offset": String(offset),
+            "sort_by": sortBy,
+            "period": period,
+            "geo": geo
+        ]
+        
+        return try await fetchJSON(
+            from: "\(music_api)/music",
+            method: .get,
+            queryParameters: queryParameters
+        )
     }
 }
